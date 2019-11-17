@@ -17,7 +17,7 @@ def user_history(X,index,list_user):
     #初始化
     X_value=X.loc[0,:].copy()
     X_continuous_weigth=X.loc[0,index['continuous']].copy()
-    X_dispered_weigth=X.loc[0,index['OneHot']].copy()
+    X_dispered_weigth=X.loc[0,index['dispered']].copy()
     X_txt_weigth=X.loc[0,index['txt']].copy()
     X_clicks_weigth=X.loc[0,index['clicks']].copy()
     X_weight_part=[0,0,0,0,0] 
@@ -161,29 +161,36 @@ if __name__=='__main__':
        'weight_txt':[0.8,1.2],
        'weight_part':[1.5,0.4,0.2,0.2,0.2]#各部分的权重（连续属性，离散属性，文本，性价比,点击量）       
        } 
+    
+    #sql语句
+    sqlcmd="select * from user_history"
+    
+    #利用pandas 模块导入mysql数据
+    df_user=pd.read_sql(sqlcmd,dbconn)
     #用户浏览记录list
-    list_user=[10000001] 
-    for i in range(0,len(list_user)):#将用户记录中的商品id转换为对应的行数（索引index）,转换为普通列表格式时用tolist()方法
-        list_user[0]=X[X['商品id']==list_user[i]].index.tolist()[0]
+    user_list=list(set(df_user['ip_address'].tolist()))
+    history_list=df_user[df_user['ip_address']==user_list[0]]['id_house_visit'].tolist()
+    for i in range(0,len(history_list)):#将用户记录中的商品id转换为对应的行数（索引index）,转换为普通列表格式时用tolist()方法
+        history_list[i]=X[X['商品id']==history_list[i]].index.tolist()[0]
     
     
     
     #对于没有浏览记录的新用户
-    if(len(list_user)==0):
+    if(len(history_list)==0):
         list_sim_recommend=recommend_user_new.distance(X,length)
      
     #用户只有一个浏览记录时
-    if(len(list_user)==1):
-        X.loc[length,:]=X.loc[list_user[0],:].copy()
+    if(len(history_list)==1):
+        X.loc[length,:]=X.loc[history_list[0],:].copy()
         distance_price=[(0,0)]*length
         distance_click=[(0,0)]*length
         list_sim_recommend=distance_house.distance(X,index,length,distance_price,distance_click)
-        list_sim_recommend.remove(list_user[0])
+        list_sim_recommend.remove(history_list[0])
     
     #用户浏览记录在2以上
-    if(len(list_user)>1):
+    if(len(history_list)>1):
         #求出属性值，以及权重      
-        X_value,X_continuous_weigth,X_dispered_weigth,X_txt_weigth,X_weight_part=user_history(X,index,list_user)       
+        X_value,X_continuous_weigth,X_dispered_weigth,X_txt_weigth,X_weight_part=user_history(X,index,history_list)       
         #修改index的权重
         index['weight_continuous']=X_continuous_weigth.values
         index['weight_dispered']=X_dispered_weigth.values.astype(np.float64)#这里的数组类型dtype=object，需要强制转换为float
@@ -194,8 +201,9 @@ if __name__=='__main__':
         distance_price=[(0,0)]*length
         distance_click=[(0,0)]*length
         list_sim_recommend=distance_house.distance(X,index,length,distance_price,distance_click)
-        for i in list_user:
-            list_sim_recommend.remove(i)
+        for i in history_list:
+            if i in list_sim_recommend:
+                list_sim_recommend.remove(i)
     
     #商品id推荐列表list
     id_recommend=X.loc[list_sim_recommend,'商品id'].tolist()#转换为普通列表格式时用tolist()方法
