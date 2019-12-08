@@ -23,10 +23,14 @@ def eculidDisSim(x,y):
 
 #独热化
 def OneHot(X):    
-    enc=preprocessing.OneHotEncoder().fit(X)
+    enc=preprocessing.OneHotEncoder(categories='auto').fit(X)
     X_encoded=enc.transform(X).toarray()
     return(X_encoded)
-    
+    '''
+    FutureWarning: The handling of integer data will change in version 0.22. Currently, the categories are determined based on the range [0, max(values)], while in the future they will be determined based on the unique values.
+    If you want the future behaviour and silence this warning, you can specify “categories=‘auto’”.
+    In case you used a LabelEncoder before this OneHotEncoder to convert the categories to integers, then you can now use the OneHotEncoder directly.
+    '''
 
 def dispersed_distance(X,index,length):
     
